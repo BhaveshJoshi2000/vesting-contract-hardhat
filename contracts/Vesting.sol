@@ -12,31 +12,33 @@ error NO_AMOUNT_TO_BE_REALEASED();
 contract Vesting is ERC20, Ownable {
     using SafeMath for uint256;
     uint256 private tokenPerMinute = (100000000 * 10**decimals()) / 525600; //year contains 525600 min.
-
+    // address immutable owner;
     uint256 private startTime;
+    uint256 constant minute = 1 minutes;
     address[] private beneficieries;
     uint256 constant maxBeneficieries = 10;
-    uint256 private currentBeneficiery = 1;
+    uint256 private currentBeneficiery = 0;
     uint256 private released = 0;
 
     constructor() ERC20("MyToken", "XYZ") {
         _mint(msg.sender, 100000000 * 10**decimals()); //100,000,000 from start
+        approve(msg.sender, 100000000 * 10**decimals());
         startTime = block.timestamp;
-        beneficieries.push(msg.sender);
     }
 
     function addBeneficiery(address _beneficiery) public onlyOwner {
         if (currentBeneficiery >= maxBeneficieries) {
             revert MAX_BENEFICIERIES_REACHED();
         }
-
-        releaseAllTokens();
+        if (beneficieries.length > 0) {
+            releaseAllTokens();
+        }
 
         beneficieries.push(_beneficiery);
         currentBeneficiery++;
     }
 
-    function releaseAllTokens() public {
+    function releaseAllTokens() public onlyOwner {
         uint256 unreleased = releasableAmount();
 
         released = released.add(unreleased);
@@ -51,7 +53,7 @@ contract Vesting is ERC20, Ownable {
 
     function releasableAmount() public view returns (uint256) {
         uint256 totalTime = block.timestamp - startTime;
-        uint256 totalTimeInMinutes = totalTime / 60 seconds;
+        uint256 totalTimeInMinutes = totalTime / minute;
 
         uint256 unreleasedAmount = tokenPerMinute.mul(totalTimeInMinutes);
 
@@ -59,14 +61,15 @@ contract Vesting is ERC20, Ownable {
     }
 
     function vestedAmount() public view returns (uint256) {
-        uint256 currentBalance = balanceOf(address(this));
+        address owner = owner();
+        uint256 currentBalance = balanceOf(owner);
         uint256 totalBalance = currentBalance.add(released);
 
         return totalBalance;
     }
 
     function release(address _beneficiary, uint256 _amount) private {
-        transfer(_beneficiary, _amount);
+        transferFrom(msg.sender, _beneficiary, _amount);
     }
 
     function getBeneficiary(uint256 _index) public view returns (address) {
@@ -79,5 +82,9 @@ contract Vesting is ERC20, Ownable {
 
     function getTotalBeneficiaries() public view returns (uint256) {
         return currentBeneficiery;
+    }
+
+    function getReleased() public view returns (uint256) {
+        return released;
     }
 }
