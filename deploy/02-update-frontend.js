@@ -21,13 +21,13 @@ async function updateAbi() {
 }
 async function updateContractAddresses() {
   const vesting = await ethers.getContract("Vesting");
-  console.log(vesting);
+
   const chainId = network.config.chainId.toString();
-  console.log(chainId);
+
   const currentAddresses = JSON.parse(
     fs.readFileSync(FRONT_END_ADDRESSES_FILE, "utf8")
   );
-  console.log(currentAddresses);
+
   if (chainId in currentAddresses) {
     if (!currentAddresses[chainId].includes(vesting.address)) {
       console.log("updating contract address");
